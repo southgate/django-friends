@@ -137,7 +137,7 @@ class JoinInvitationManager(models.Manager):
         
         send_mail(subject, email_message, settings.DEFAULT_FROM_EMAIL, [to_email])        
         return self.create(from_user=from_user, contact=contact, message=message, 
-            status=JoinInvitation.SENT, confirmation_key=confirmation_key)
+            status=SENT, confirmation_key=confirmation_key)
 
 
 class JoinInvitation(models.Model):
@@ -157,7 +157,7 @@ class JoinInvitation(models.Model):
     
     def accept(self, new_user):
         # mark invitation accepted
-        self.status = JoinInvitation.ACCEPTED
+        self.status = ACCEPTED
         self.save()
         # auto-create friendship
         friendship = Friendship(to_user=new_user, from_user=self.from_user)
@@ -175,7 +175,7 @@ class JoinInvitation(models.Model):
 class FriendshipInvitationManager(models.Manager):
     
     def invitations(self, *args, **kwargs):
-        return self.filter(*args, **kwargs).exclude(status__in=[JoinInvitation.DECLINED, JoinInvitation.DELETED])
+        return self.filter(*args, **kwargs).exclude(status__in=[DECLINED, DELETED])
 
 
 class FriendshipInvitation(models.Model):
@@ -196,7 +196,7 @@ class FriendshipInvitation(models.Model):
         if not Friendship.objects.are_friends(self.to_user, self.from_user):
             friendship = Friendship(to_user=self.to_user, from_user=self.from_user)
             friendship.save()
-            self.status = JoinInvitation.ACCEPTED
+            self.status = ACCEPTED
             self.save()
             if notification:
                 notification.send([self.from_user], "friends_accept", {"invitation": self})
@@ -207,7 +207,7 @@ class FriendshipInvitation(models.Model):
     
     def decline(self):
         if not Friendship.objects.are_friends(self.to_user, self.from_user):
-            self.status = JoinInvitation.DECLINED
+            self.status = DECLINED
             self.save()
 
 
@@ -227,8 +227,8 @@ if EmailAddress:
     def new_user(sender, instance, **kwargs):
         if instance.verified:
             for join_invitation in JoinInvitation.objects.filter(contact__email=instance.email):
-                if join_invitation.status not in [JoinInvitation.ACCEPTED, JoinInvitation.JOINED_INDEPENDENTLY]: # if not accepted or already marked as joined independently
-                    join_invitation.status = JoinInvitation.JOINED_INDEPENDENTLY
+                if join_invitation.status not in [ACCEPTED, JOINED_INDEPENDENTLY]: # if not accepted or already marked as joined independently
+                    join_invitation.status = JOINED_INDEPENDENTLY
                     join_invitation.save()
                     # notification will be covered below
             for contact in Contact.objects.filter(email=instance.email):
@@ -241,8 +241,8 @@ if EmailAddress:
 def delete_friendship(sender, instance, **kwargs):
     friendship_invitations = FriendshipInvitation.objects.filter(to_user=instance.to_user, from_user=instance.from_user)
     for friendship_invitation in friendship_invitations:
-        if friendship_invitation.status != JoinInvitation.DELETED:
-            friendship_invitation.status = JoinInvitation.DELETED
+        if friendship_invitation.status != DELETED:
+            friendship_invitation.status = DELETED
             friendship_invitation.save()
 
 
