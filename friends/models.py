@@ -107,6 +107,11 @@ INVITE_STATUS = (
     ("8", "Deleted")
 )
 
+for (i, name) in INVITE_STATUS: # Create constants for the invite statuses
+    exec("%s = %d" % (name.upper().replace(' ', '_'), int(i)))
+
+
+
 class JoinInvitationManager(models.Manager):
     
     def send_invitation(self, from_user, to_email, message):
@@ -136,9 +141,6 @@ class JoinInvitationManager(models.Manager):
 
 
 class JoinInvitation(models.Model):
-    for (i, name) in INVITE_STATUS: # Create constants for the invite statuses
-        exec("%s = %d" % (name.upper().replace(' ', '_'), int(i)))
-    
     """
     A join invite is an invitation to join the site from a user to a
     contact who is not known to be a user.
