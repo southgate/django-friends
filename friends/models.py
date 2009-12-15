@@ -67,11 +67,13 @@ class FriendshipManager(models.Manager):
         return False
     
     def remove(self, user1, user2):
+        friendship = None
         if self.filter(from_user=user1, to_user=user2):
             friendship = self.filter(from_user=user1, to_user=user2)
         elif self.filter(from_user=user2, to_user=user1):
             friendship = self.filter(from_user=user2, to_user=user1)
-        friendship.delete()
+        if friendship:
+            friendship.delete()
 
 
 class Friendship(models.Model):
@@ -89,10 +91,13 @@ class Friendship(models.Model):
     
     class Meta:
         unique_together = (('to_user', 'from_user'),)
+        
+    def __unicode__(self):
+        return "<Friendship from=%s to=%s>" % (self.from_user, self.to_user)
 
 
-def friend_set_for(user):
-    return set([obj["friend"] for obj in Friendship.objects.friends_for_user(user)])
+def friend_set_for(user, friendship_class=Friendship):
+    return set([obj["friend"] for obj in friendship_class.objects.friends_for_user(user)])
 
 
 
@@ -109,8 +114,6 @@ INVITE_STATUS = (
 
 for (i, name) in INVITE_STATUS: # Create constants for the invite statuses
     exec("%s = %d" % (name.upper().replace(' ', '_'), int(i)))
-
-
 
 class JoinInvitationManager(models.Manager):
     
@@ -145,7 +148,6 @@ class JoinInvitation(models.Model):
     A join invite is an invitation to join the site from a user to a
     contact who is not known to be a user.
     """
-    
     from_user = models.ForeignKey(User, related_name="join_from")
     contact = models.ForeignKey(Contact)
     message = models.TextField()
@@ -155,12 +157,12 @@ class JoinInvitation(models.Model):
     
     objects = JoinInvitationManager()
     
-    def accept(self, new_user):
+    def accept(self, new_user, friendship_class=Friendship):
         # mark invitation accepted
         self.status = ACCEPTED
         self.save()
         # auto-create friendship
-        friendship = Friendship(to_user=new_user, from_user=self.from_user)
+        friendship = friendship_class(to_user=new_user, from_user=self.from_user)
         friendship.save()
         # notify
         if notification:
@@ -192,10 +194,11 @@ class FriendshipInvitation(models.Model):
     
     objects = FriendshipInvitationManager()
     
-    def accept(self):
-        if not Friendship.objects.are_friends(self.to_user, self.from_user):
-            friendship = Friendship(to_user=self.to_user, from_user=self.from_user)
+    def accept(self, friendship_class=Friendship):
+        if not friendship_class.objects.are_friends(self.to_user, self.from_user):
+            friendship = friendship_class(to_user=self.to_user, from_user=self.from_user)
             friendship.save()
+            
             self.status = ACCEPTED
             self.save()
             if notification:
@@ -205,8 +208,8 @@ class FriendshipInvitation(models.Model):
                     if user != self.to_user and user != self.from_user:
                         notification.send([user], "friends_otherconnect", {"invitation": self, "to_user": self.to_user})
     
-    def decline(self):
-        if not Friendship.objects.are_friends(self.to_user, self.from_user):
+    def decline(self, friendship_class=Friendship):
+        if not friendship_class.objects.are_friends(self.to_user, self.from_user):
             self.status = DECLINED
             self.save()
 
