@@ -76,7 +76,7 @@ class FriendshipManager(models.Manager):
             friendship.delete()
 
 
-class Friendship(models.Model):
+class Friendship(models.Model): 
     """
     A friendship is a bi-directional association between two users who
     have both agreed to the association.
@@ -207,6 +207,9 @@ class FriendshipInvitation(models.Model):
                 for user in friend_set_for(self.to_user) | friend_set_for(self.from_user):
                     if user != self.to_user and user != self.from_user:
                         notification.send([user], "friends_otherconnect", {"invitation": self, "to_user": self.to_user})
+        else:
+            self.status = JOINED_INDEPENDENTLY
+            self.save()
     
     def decline(self, friendship_class=Friendship):
         if not friendship_class.objects.are_friends(self.to_user, self.from_user):
