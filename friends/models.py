@@ -212,10 +212,8 @@ class FriendshipInvitation(models.Model):
             self.save()
     
     def decline(self, friendship_class=Friendship):
-        if not friendship_class.objects.are_friends(self.to_user, self.from_user):
-            self.status = DECLINED
-            self.save()
-
+        self.status = DECLINED
+        self.save()
 
 class FriendshipInvitationHistory(models.Model):
     """
